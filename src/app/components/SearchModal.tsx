@@ -31,14 +31,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-[70] backdrop-blur-sm"
           />
 
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-2xl z-50 px-4"
+            className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-2xl z-[71] px-4"
           >
             <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
               <div className="p-6 border-b border-gray-200">

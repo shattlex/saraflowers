@@ -1,49 +1,105 @@
 # Integrations Setup (RU)
 
-## 1) Bitrix24: заявки из формы "Напишите нам"
+## Что реализовано
 
-1. Создайте входящий webhook в Bitrix24 с правами CRM.
-2. Возьмите base URL вида:
-   `https://<portal>.bitrix24.ru/rest/<user_id>/<webhook_key>`
-3. В `.env` заполните:
-   `BITRIX24_WEBHOOK_URL=<base_url>`
-4. Форма контактов отправляет POST на `/api/contact`, сервер создает лид через:
-   `crm.lead.add.json`
+- Личный кабинет с базой заказов (PostgreSQL)
+- Регистрация/вход:
+  - пароль (email/телефон + пароль)
+  - SMS-код (через sms.ru, либо DEV-режим)
+  - Google OAuth
+  - Яндекс OAuth
+- Оформление заказа с разделением:
+  - плательщик
+  - получатель (может быть другим человеком)
+- Статусы заказа в ЛК:
+  - `received` — Заказ получен
+  - `assembled` — Собран
+  - `out_for_delivery` — Передан на доставку
+  - `delivered` — Вручен
+- PDF-чек по оплаченному заказу (доступен в ЛК)
+- Telegram уведомление после `payment.succeeded`:
+  - букет (список)
+  - фото букета (если есть URL)
+  - адрес доставки
+  - контакты плательщика и получателя
+- Bitrix24 заявка из формы «Напишите нам»
 
-## 2) YooKassa: онлайн-оплата для РФ
+## 1) PostgreSQL
 
-Выбран сервис: **YooKassa** (рабочий вариант для клиентов РФ, карты/СБП/кошельки в зависимости от настроек магазина).
+Обязательно заполните в `.env`:
 
-1. Получите `shopId` и `secretKey` в кабинете YooKassa.
-2. В `.env` заполните:
-   - `YOOKASSA_SHOP_ID`
-   - `YOOKASSA_SECRET_KEY`
-   - `PUBLIC_BASE_URL` (домен фронта, напр. `https://flowers.example.ru`)
-3. На checkout при "Карта онлайн" фронт вызывает `/api/payments/create`, затем редиректит пользователя на `confirmation_url`.
-4. В YooKassa добавьте webhook URL:
-   `https://<your-domain>/api/payments/webhook`
-   Событие: `payment.succeeded`.
+- `DATABASE_URL=postgres://user:password@host:5432/dbname`
+- `JWT_SECRET=...`
 
-## 3) Telegram Bot: уведомление о оплаченных букетах
+При старте API таблицы создаются автоматически.
 
-1. Создайте Telegram-бота через BotFather.
-2. Получите `TELEGRAM_BOT_TOKEN`.
-3. Добавьте бота в нужный чат/группу и получите `TELEGRAM_CHAT_ID`.
-4. В `.env` заполните:
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
-5. После webhook `payment.succeeded` сервер отправляет сообщение в Telegram:
-   - номер заказа
-   - сумма
-   - клиент
-   - состав букетов
+## 2) Bitrix24 (форма контактов)
 
-## Local run
+1. Создайте входящий webhook с правами CRM.
+2. Заполните:
+   - `BITRIX24_WEBHOOK_URL=https://<portal>.bitrix24.ru/rest/<user_id>/<webhook_key>`
+
+Форма `Контакты` отправляет POST на `/api/contact`, сервер создает лид через `crm.lead.add.json`.
+
+## 3) YooKassa (оплата для РФ)
+
+Заполните:
+
+- `YOOKASSA_SHOP_ID`
+- `YOOKASSA_SECRET_KEY`
+- `PUBLIC_BASE_URL=https://sara-flowers.ru`
+
+В YooKassa настройте webhook:
+
+- URL: `https://sara-flowers.ru/api/payments/webhook`
+- событие: `payment.succeeded`
+
+## 4) Telegram Bot
+
+Заполните:
+
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+
+После успешной оплаты API отправит сообщение/фото в Telegram.
+
+## 5) SMS авторизация (sms.ru)
+
+Заполните:
+
+- `SMSRU_API_ID`
+
+Если `SMSRU_API_ID` пустой, в DEV-режиме код возвращается в ответе API как `devCode`.
+
+## 6) OAuth (Google и Яндекс)
+
+Заполните:
+
+- Google:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI=https://sara-flowers.ru/api/auth/oauth/google/callback`
+- Яндекс:
+  - `YANDEX_CLIENT_ID`
+  - `YANDEX_CLIENT_SECRET`
+  - `YANDEX_REDIRECT_URI=https://sara-flowers.ru/api/auth/oauth/yandex/callback`
+
+После OAuth пользователь возвращается в `/account` уже авторизованным.
+
+## 7) Опционально: защита ручного обновления статуса
+
+Для endpoint `PATCH /api/orders/:orderId/status` заполните:
+
+- `ADMIN_API_TOKEN`
+
+И передавайте заголовок `x-admin-token`.
+
+## Локальный запуск
 
 1. Скопируйте `.env.example` -> `.env` и заполните ключи.
 2. Запустите API:
-   `npm run dev:api`
-3. В другом терминале запустите фронт:
-   `npm run dev`
+   - `npm run dev:api`
+3. Запустите фронт:
+   - `npm run dev`
 
-Vite proxy проксирует `/api/*` на `http://127.0.0.1:8787` (или `VITE_API_BASE_URL`).
+Vite проксирует `/api/*` на `http://127.0.0.1:8787`.

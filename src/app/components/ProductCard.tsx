@@ -4,6 +4,7 @@ import { Product } from '../data/products';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 
 interface ProductCardProps {
   product: Product;
@@ -12,10 +13,17 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addToCart(product, product.sizes[1]?.value ?? product.sizes[0].value);
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleFavorite(product.id);
   };
 
   return (
@@ -43,12 +51,14 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <motion.button
             initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
-            className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-primary hover:text-white transition-colors"
-            onClick={(e) => e.preventDefault()}
-            aria-label="Добавить в избранное"
+            animate={{ opacity: isHovered || favorite ? 1 : 0 }}
+            className={`absolute top-4 right-4 p-2 rounded-full shadow-lg transition-colors ${
+              favorite ? 'bg-primary text-white' : 'bg-white hover:bg-primary hover:text-white'
+            }`}
+            onClick={handleToggleFavorite}
+            aria-label={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
           >
-            <Heart className="w-5 h-5" />
+            <Heart className={`w-5 h-5 ${favorite ? 'fill-current' : ''}`} />
           </motion.button>
 
           <motion.button

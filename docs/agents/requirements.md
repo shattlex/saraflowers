@@ -2,30 +2,40 @@
 
 ## Scope
 
-1. Интеграция формы `Контакты -> Bitrix24`.
-2. Интеграция `Checkout (успешная оплата) -> Telegram bot`.
-3. Интеграция онлайн-оплаты для РФ через YooKassa.
+1. Личный кабинет с базой заказов (PostgreSQL).
+2. Авторизация: пароль, SMS, Google OAuth, Yandex OAuth.
+3. Оформление заказа с разделением на плательщика и получателя.
+4. Статусы заказа в ЛК: получен, собран, передан на доставку, вручен.
+5. PDF-чек по оплаченному заказу.
+6. Telegram после оплаты: букет (текст + фото), адрес, контакты плательщика/получателя.
 
 ## Workstreams
 
-1. Backend integration stream:
-- `POST /api/contact` -> Bitrix24 `crm.lead.add`.
-- `POST /api/payments/create` -> YooKassa payment creation.
-- `POST /api/payments/webhook` -> Telegram notification on `payment.succeeded`.
+1. Backend stream:
+- PostgreSQL schema (`users`, `sms_codes`, `orders`)
+- Auth API (`/api/auth/*`)
+- Order history API (`/api/orders/my`)
+- Payment API + webhook (`/api/payments/create`, `/api/payments/webhook`)
+- PDF receipt generation + static serve (`/receipts/*`)
 
-2. Frontend integration stream:
-- Contacts form submit to `/api/contact`.
-- Checkout card payment flow to `/api/payments/create` + redirect to confirmation URL.
-- Success state after return URL `/checkout?payment=success&orderId=...`.
+2. Frontend stream:
+- Новый экран `/account`
+- Формы login/register/sms + OAuth start
+- История заказов и статусы
+- Скачивание PDF чека
+- Checkout: выбор получателя + передача полных данных в API
 
-3. Config & ops stream:
-- `.env.example` with required keys.
-- `INTEGRATIONS.md` setup steps.
-- Vite proxy `/api` -> backend API.
+3. Ops/docs stream:
+- Расширенный `.env.example`
+- Обновленный `INTEGRATIONS.md` по Postgres/SMS/OAuth/Telegram/YooKassa
 
 ## Acceptance Criteria
 
-1. При отправке формы контактов создается лид в Bitrix24.
-2. При успешной оплате в YooKassa приходит Telegram-уведомление с составом заказа.
-3. На checkout при выборе "Карта онлайн" создается реальный платеж в RUB и происходит редирект в YooKassa.
-4. Сборка фронта проходит без ошибок.
+1. Пользователь может зарегистрироваться/войти и увидеть свои прошлые заказы.
+2. В checkout можно выбрать: получатель = плательщик или другой человек.
+3. После `payment.succeeded`:
+- заказ сохраняется как `paid` и `received`
+- создается PDF чек
+- в Telegram уходит сообщение с букетом, фото (если URL), адресом и контактами
+4. В ЛК отображаются статусы заказа и ссылка на PDF чек.
+5. Сборка фронта проходит без ошибок.

@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Star, Clock, Shield, Camera, Heart, ShoppingCart, ChevronLeft, Check } from 'lucide-react';
 import { getProducts } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { ProductCard } from '../components/ProductCard';
 import { useCmsContent } from '../cms/useCmsContent';
 
@@ -13,6 +14,7 @@ export function ProductDetail() {
   const { id } = useParams();
   const product = products.find((p) => p.id === id);
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [selectedSize, setSelectedSize] = useState(product?.sizes[1]?.value || product?.sizes[0]?.value || 'M');
   const [added, setAdded] = useState(false);
 
@@ -34,6 +36,7 @@ export function ProductDetail() {
   const selectedSizeData = product.sizes.find((s) => s.value === selectedSize);
   const currentPrice = selectedSizeData?.price || product.price;
   const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const favorite = isFavorite(product.id);
 
   const handleAddToCart = () => {
     addToCart(product, selectedSize);
@@ -120,8 +123,14 @@ export function ProductDetail() {
                   <><ShoppingCart className="w-5 h-5" />В корзину</>
                 )}
               </motion.button>
-              <button className="p-4 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors" aria-label="Добавить в избранное">
-                <Heart className="w-6 h-6" />
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                className={`p-4 border rounded-full transition-colors ${
+                  favorite ? 'border-primary bg-primary text-white' : 'border-gray-200 hover:bg-gray-50'
+                }`}
+                aria-label={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+              >
+                <Heart className={`w-6 h-6 ${favorite ? 'fill-current' : ''}`} />
               </button>
             </div>
 

@@ -1,19 +1,24 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { CreditCard, Wallet, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { Link, useSearchParams } from 'react-router';
-import { createPayment } from '../api/client';
+import { createCashOrder, createPayment, me } from '../api/client';
 
 export function Checkout() {
   const { items, total, clearCart } = useCart();
   const [searchParams] = useSearchParams();
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recipientMode, setRecipientMode] = useState<'self' | 'other'>('self');
+
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+    payerName: '',
+    payerPhone: '',
+    payerEmail: '',
+    recipientName: '',
+    recipientPhone: '',
+    recipientEmail: '',
     address: '',
     paymentMethod: 'card',
     comment: ''
@@ -28,6 +33,23 @@ export function Checkout() {
     clearCart();
   }, [clearCart, isPaymentSuccess]);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const resp = await me();
+        setFormData((prev) => ({
+          ...prev,
+          payerName: resp.user.name || prev.payerName,
+          payerPhone: resp.user.phone || prev.payerPhone,
+          payerEmail: resp.user.email || prev.payerEmail,
+          address: resp.user.default_delivery_address || prev.address
+        }));
+      } catch {
+        // Non-authenticated checkout remains available
+      }
+    })();
+  }, []);
+
   const orderNumber = useMemo(() => {
     if (successOrderId) return successOrderId;
     return `SF${Math.floor(Math.random() * 10000)}`;
@@ -38,29 +60,69 @@ export function Checkout() {
     if (isSubmitting) return;
 
     if (formData.paymentMethod === 'cash') {
-      setOrderPlaced(true);
-      setTimeout(() => {
-        clearCart();
-      }, 1200);
+      try {
+        setIsSubmitting(true);
+        const order = await createCashOrder({
+          payer: {
+            name: formData.payerName,
+            phone: formData.payerPhone,
+            email: formData.payerEmail
+          },
+          recipientMode,
+          recipient: {
+            name: recipientMode === 'other' ? formData.recipientName : formData.payerName,
+            phone: recipientMode === 'other' ? formData.recipientPhone : formData.payerPhone,
+            email: recipientMode === 'other' ? formData.recipientEmail : formData.payerEmail
+          },
+          items: items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image
+          })),
+          total,
+          deliveryAddress: formData.address,
+          orderComment: formData.comment
+        });
+
+        setOrderPlaced(true);
+        setTimeout(() => {
+          clearCart();
+          window.history.replaceState({}, '', `/checkout?payment=success&orderId=${encodeURIComponent(order.orderId)}`);
+        }, 500);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Не удалось оформить заказ.';
+        alert(`Ошибка: ${message}`);
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
     try {
       setIsSubmitting(true);
       const payment = await createPayment({
-        customer: {
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          address: formData.address
+        payer: {
+          name: formData.payerName,
+          phone: formData.payerPhone,
+          email: formData.payerEmail
+        },
+        recipientMode,
+        recipient: {
+          name: recipientMode === 'other' ? formData.recipientName : formData.payerName,
+          phone: recipientMode === 'other' ? formData.recipientPhone : formData.payerPhone,
+          email: recipientMode === 'other' ? formData.recipientEmail : formData.payerEmail
         },
         items: items.map((item) => ({
           id: item.id,
           name: item.name,
           quantity: item.quantity,
-          price: item.price
+          price: item.price,
+          image: item.image
         })),
         total,
+        deliveryAddress: formData.address,
         orderComment: formData.comment
       });
 
@@ -109,16 +171,17 @@ export function Checkout() {
             <p className="text-gray-600 mb-2" style={{ fontFamily: 'var(--font-sans)' }}>
               Номер заказа: <span className="font-medium">#{orderNumber}</span>
             </p>
-            <p className="text-gray-600 mb-8" style={{ fontFamily: 'var(--font-sans)' }}>
-              Менеджер свяжется с вами в ближайшее время для подтверждения деталей.
+            <p className="text-gray-600 mb-4" style={{ fontFamily: 'var(--font-sans)' }}>
+              Статус заказа и чек будут доступны в личном кабинете.
             </p>
-            <Link
-              to="/"
-              className="inline-block px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 transition-all"
-              style={{ fontFamily: 'var(--font-sans)' }}
-            >
-              На главную
-            </Link>
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <Link to="/" className="inline-block px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 transition-all" style={{ fontFamily: 'var(--font-sans)' }}>
+                На главную
+              </Link>
+              <Link to="/account" className="inline-block px-8 py-4 border border-gray-200 rounded-full hover:bg-gray-50 transition-all" style={{ fontFamily: 'var(--font-sans)' }}>
+                В личный кабинет
+              </Link>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -140,32 +203,79 @@ export function Checkout() {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white rounded-2xl p-8 border border-gray-200 space-y-4">
-              <h3 className="font-medium text-xl mb-2">Контактные данные</h3>
+              <h3 className="font-medium text-xl mb-2">Данные плательщика</h3>
 
               <input
                 type="text"
                 required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.payerName}
+                onChange={(e) => setFormData({ ...formData, payerName: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                placeholder="Ваше имя"
+                placeholder="Имя плательщика"
               />
               <input
                 type="tel"
                 required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                value={formData.payerPhone}
+                onChange={(e) => setFormData({ ...formData, payerPhone: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
                 placeholder="+7 (999) 123-45-67"
               />
               <input
                 type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={formData.payerEmail}
+                onChange={(e) => setFormData({ ...formData, payerEmail: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
                 placeholder="email@example.com"
               />
+
+              <h3 className="font-medium text-xl mb-2 pt-2">Кто получатель</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRecipientMode('self')}
+                  className={`p-4 border-2 rounded-xl transition-all ${recipientMode === 'self' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  Плательщик и получатель один человек
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecipientMode('other')}
+                  className={`p-4 border-2 rounded-xl transition-all ${recipientMode === 'other' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  Отправить другому человеку
+                </button>
+              </div>
+
+              {recipientMode === 'other' && (
+                <div className="space-y-3 pt-2">
+                  <input
+                    type="text"
+                    required
+                    value={formData.recipientName}
+                    onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
+                    placeholder="Имя получателя"
+                  />
+                  <input
+                    type="tel"
+                    required
+                    value={formData.recipientPhone}
+                    onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
+                    placeholder="Телефон получателя"
+                  />
+                  <input
+                    type="email"
+                    value={formData.recipientEmail}
+                    onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
+                    placeholder="Email получателя (необязательно)"
+                  />
+                </div>
+              )}
+
+              <h3 className="font-medium text-xl mb-2 pt-2">Доставка</h3>
               <input
                 type="text"
                 required
@@ -260,5 +370,3 @@ export function Checkout() {
     </div>
   );
 }
-
-

@@ -1,28 +1,28 @@
 QA REPORT:
 - Risk Level: Medium
 - Findings:
-  1. Нет автотестов интеграций с внешними сервисами (Bitrix24/YooKassa/Telegram), проверка сейчас smoke/manual.
-  2. Нет верификации подлинности webhook от YooKassa на уровне подписи; используется событие и payload без дополнительной криптопроверки.
-  3. Хранение состояния заказа без БД (метаданные в YooKassa), что достаточно для MVP, но ограничивает аудит/повторные проверки.
+  1. OAuth (Google/Yandex) и SMS требуют внешние провайдеры и валидные ключи в `.env`; без них соответствующие методы входа недоступны.
+  2. Проверка подлинности webhook YooKassa пока минимальная (по payload/event), без дополнительной криптоподписи на уровне приложения.
+  3. Endpoint смены статуса заказа (`PATCH /api/orders/:orderId/status`) защищен `x-admin-token`; при слабом токене есть риск несанкционированных изменений.
 - Suggested Fix:
-  - Добавить интеграционные тесты с моками внешних API.
-  - Добавить проверку доверенного источника webhook (IP allowlist YooKassa + reverse proxy restrictions).
-  - В следующем этапе внедрить persistent storage заказов (PostgreSQL) и связь payment_id -> order.
+  - Настроить прод-ключи OAuth/SMS и проверить callback URL на боевом домене.
+  - Усилить валидацию webhook (источник/IP allowlist и ограничения reverse-proxy).
+  - Сгенерировать длинный случайный `ADMIN_API_TOKEN` и хранить только в `.env`.
 - Test Scenarios:
-  - Preconditions: заполнены `.env` ключи Bitrix24/YooKassa/Telegram, backend поднят.
-  - Steps: отправить форму контактов.
-  - Expected Result: ответ API 200, лид в Bitrix24.
+  - Preconditions: заполнены `DATABASE_URL`, `JWT_SECRET`, `YOOKASSA_*`, `TELEGRAM_*`.
+  - Steps: оформить заказ онлайн, выбрать `получатель = другой человек`, оплатить.
+  - Expected Result: заказ появляется в ЛК, статус `Заказ получен`, есть PDF чек, в Telegram приходит букет+фото+адрес+плательщик/получатель.
   - Priority: High
 
-  - Preconditions: корзина содержит >=1 товар, валидные ключи YooKassa.
-  - Steps: checkout -> "Карта онлайн" -> редирект в YooKassa -> успешная оплата.
-  - Expected Result: возврат на `/checkout?payment=success&orderId=...`, webhook вызывает Telegram-уведомление.
+  - Preconditions: OAuth и SMS ключи заполнены.
+  - Steps: пройти логин через SMS/Google/Yandex.
+  - Expected Result: успешная авторизация, переход в `/account`, отображение профиля/заказов.
   - Priority: High
 
-  - Preconditions: невалидный/пустой ключ любого внешнего сервиса.
-  - Steps: вызвать соответствующий endpoint.
-  - Expected Result: контролируемая ошибка API с понятным сообщением.
+  - Preconditions: есть заказ и `ADMIN_API_TOKEN`.
+  - Steps: отправить `PATCH /api/orders/:orderId/status` по цепочке `received -> assembled -> out_for_delivery -> delivered`.
+  - Expected Result: в ЛК меняется текст статуса.
   - Priority: Medium
 - Production Impact:
-  - Решение готово для пилота/MVP с реальными платежами в РФ и CRM/Telegram интеграциями.
-  - Для полноценных production SLA рекомендуются меры из Suggested Fix.
+  - Решение готово как production MVP после заполнения `.env` и включения PostgreSQL.
+  - Основные пользовательские сценарии (личный кабинет, история заказов, статусы, чеки, Telegram после оплаты) покрыты.

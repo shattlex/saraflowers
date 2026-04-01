@@ -1,11 +1,12 @@
 ﻿import { Link } from 'react-router';
-import { ShoppingCart, Search, Heart, Menu } from 'lucide-react';
+import { ShoppingCart, Search, Heart, Menu, UserRound } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { motion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { SearchModal } from './SearchModal';
 import { MobileMenu } from './MobileMenu';
 import { useCmsContent } from '../cms/useCmsContent';
+import { useFavorites } from '../context/FavoritesContext';
 
 const fallbackNav = [
   { slug: 'home', title: 'О нас' },
@@ -21,6 +22,7 @@ function pageToPath(slug: string): string {
 
 export function Header() {
   const { itemCount } = useCart();
+  const { favoritesCount } = useFavorites();
   const cmsContent = useCmsContent();
   const siteName = cmsContent.siteName?.trim() || 'Sara Flowers';
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -62,7 +64,7 @@ export function Header() {
           <div className="flex items-center justify-between py-2">
             <Link to="/" className="flex items-center">
               <img
-                src="/logo-sara.svg"
+                src="/logo-sara.png"
                 alt={siteName}
                 className="h-auto w-[170px] sm:w-[210px] md:w-[230px] max-h-16 sm:max-h-20 md:max-h-20 object-contain object-left"
                 onError={(e) => {
@@ -89,9 +91,18 @@ export function Header() {
               >
                 <Search className="w-5 h-5" />
               </button>
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Избранное">
+              <Link to="/favorites" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Избранное">
                 <Heart className="w-5 h-5" />
-              </button>
+                {favoritesCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-primary text-white text-xs min-w-5 h-5 px-1 rounded-full flex items-center justify-center"
+                  >
+                    {favoritesCount}
+                  </motion.span>
+                )}
+              </Link>
               <Link to="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Корзина">
                 <ShoppingCart className="w-5 h-5" />
                 {itemCount > 0 && (
@@ -103,6 +114,9 @@ export function Header() {
                     {itemCount}
                   </motion.span>
                 )}
+              </Link>
+              <Link to="/account" className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Личный кабинет">
+                <UserRound className="w-5 h-5" />
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(true)}

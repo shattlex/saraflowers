@@ -8,6 +8,8 @@ import { Checkout } from './pages/Checkout';
 import { Delivery } from './pages/Delivery';
 import { Contacts } from './pages/Contacts';
 import { BouquetBuilder } from './pages/BouquetBuilder';
+import { Account } from './pages/Account';
+import { Favorites } from './pages/Favorites';
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +47,14 @@ export const router = createBrowserRouter([
       {
         path: 'bouquet-builder',
         element: <BouquetBuilder />
+      },
+      {
+        path: 'account',
+        element: <Account />
+      },
+      {
+        path: 'favorites',
+        element: <Favorites />
       }
     ]
   }

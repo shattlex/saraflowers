@@ -1,4 +1,4 @@
-﻿import { Instagram, Facebook, Mail, Phone, MapPin } from 'lucide-react';
+﻿import { Mail } from 'lucide-react';
 import { Link } from 'react-router';
 import { useCmsContent } from '../cms/useCmsContent';
 
@@ -17,14 +17,7 @@ export function Footer() {
             <p className="text-sm text-gray-600 mb-4">
               Свежие цветы, авторские композиции и бережная доставка по Москве и области.
             </p>
-            <div className="flex gap-3">
-              <a href="https://instagram.com" className="p-2 bg-white rounded-full hover:bg-primary hover:text-white transition-colors" aria-label="Instagram">
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a href="https://facebook.com" className="p-2 bg-white rounded-full hover:bg-primary hover:text-white transition-colors" aria-label="Facebook">
-                <Facebook className="w-4 h-4" />
-              </a>
-            </div>
+            <div />
           </div>
 
           <div>
@@ -51,16 +44,8 @@ export function Footer() {
             <h4 className="font-medium mb-4">Контакты</h4>
             <ul className="space-y-3 text-sm text-gray-600">
               <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href="tel:+74951234567" className="hover:text-primary transition-colors">+7 (495) 123-45-67</a>
-              </li>
-              <li className="flex items-start gap-2">
                 <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href="mailto:info@saraflowers.ru" className="hover:text-primary transition-colors">info@saraflowers.ru</a>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Москва, Цветочная улица, 15</span>
+                <a href="mailto:sales@sara-flowers.ru" className="hover:text-primary transition-colors">sales@sara-flowers.ru</a>
               </li>
             </ul>
           </div>
@@ -71,10 +56,10 @@ export function Footer() {
           <div className="flex gap-6">
             <a href="#" className="hover:text-primary transition-colors">Политика конфиденциальности</a>
             <a href="#" className="hover:text-primary transition-colors">Пользовательское соглашение</a>
-            <a href="/admin/admin.html" className="hover:text-primary transition-colors">Админ-панель</a>
           </div>
         </div>
       </div>
     </footer>
   );
 }
+

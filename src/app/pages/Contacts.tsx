@@ -1,5 +1,5 @@
 ﻿import { motion } from 'motion/react';
-import { MapPin, Phone, Mail, Clock, Instagram, Send, type LucideIcon } from 'lucide-react';
+import { Mail, Clock, Instagram, Send, type LucideIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { findCmsPage, type CmsBlock } from '../cms/content';
 import { useCmsContent } from '../cms/useCmsContent';
@@ -13,18 +13,14 @@ interface ContactItem {
 }
 
 const iconMap: Record<string, LucideIcon> = {
-  phone: Phone,
   mail: Mail,
   instagram: Instagram,
-  'map-pin': MapPin,
   clock: Clock
 };
 
 const fallbackContactInfo: ContactItem[] = [
-  { icon: Phone, title: 'Телефон', content: '+7 (495) 123-45-67', link: 'tel:+74951234567' },
-  { icon: Mail, title: 'Email', content: 'info@saraflowers.ru', link: 'mailto:info@saraflowers.ru' },
-  { icon: Instagram, title: 'Instagram', content: '@sara_flowers', link: 'https://instagram.com' },
-  { icon: MapPin, title: 'Адрес', content: 'Москва, ул. Цветочная, д. 15', link: null }
+  { icon: Mail, title: 'Email', content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' },
+  { icon: Instagram, title: 'Instagram', content: '@sara_flowers', link: 'https://instagram.com' }
 ];
 
 function findTextBlock(blocks: CmsBlock[], title: string): CmsBlock | undefined {
@@ -78,6 +74,24 @@ function readContacts(blocks: CmsBlock[]): ContactItem[] {
     .filter((item): item is ContactItem => item !== null);
 }
 
+function normalizeContactInfo(items: ContactItem[]): ContactItem[] {
+  const withoutPhoneOrAddress = items.filter((item) => {
+    const title = item.title.trim().toLowerCase();
+    return !title.includes('телефон') && !title.includes('адрес');
+  });
+
+  const hasEmail = withoutPhoneOrAddress.some((item) => item.title.trim().toLowerCase().includes('email'));
+  const normalized = withoutPhoneOrAddress.map((item) =>
+    item.title.trim().toLowerCase().includes('email')
+      ? { ...item, content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' }
+      : item
+  );
+
+  if (hasEmail) return normalized;
+
+  return [{ icon: Mail, title: 'Email', content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' }, ...normalized];
+}
+
 export function Contacts() {
   const cmsContent = useCmsContent();
   const cmsPage = findCmsPage(cmsContent, 'contacts');
@@ -90,7 +104,7 @@ export function Contacts() {
   const workHours = typeof workHoursBlock?.body === 'string' && workHoursBlock.body.trim() ? workHoursBlock.body : 'Ежедневно с 9:00 до 21:00';
   const formButtonText = typeof formBlock?.body === 'string' && formBlock.body.trim() ? formBlock.body : 'Отправить сообщение';
   const cmsContacts = readContacts(blocks);
-  const contactInfo = cmsContacts.length > 0 ? cmsContacts : fallbackContactInfo;
+  const contactInfo = normalizeContactInfo(cmsContacts.length > 0 ? cmsContacts : fallbackContactInfo);
 
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -194,13 +208,10 @@ export function Contacts() {
             </div>
           </motion.div>
         </div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-gray-200 overflow-hidden">
-          <div className="w-full h-96 bg-gray-200 rounded-2xl flex items-center justify-center" />
-        </motion.div>
       </div>
     </div>
   );
 }
+
 
 

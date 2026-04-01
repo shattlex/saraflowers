@@ -69,15 +69,9 @@ export function MobileMenu({ isOpen, onClose, items }: MobileMenuProps) {
 
               <div className="mt-8 pt-8 border-t border-gray-200 space-y-4">
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Телефон</p>
-                  <a href="tel:+74951234567" className="text-lg font-medium hover:text-primary transition-colors">
-                    +7 (495) 123-45-67
-                  </a>
-                </div>
-                <div>
                   <p className="text-sm text-gray-500 mb-2">Email</p>
-                  <a href="mailto:info@saraflowers.ru" className="text-lg font-medium hover:text-primary transition-colors">
-                    info@saraflowers.ru
+                  <a href="mailto:sales@sara-flowers.ru" className="text-lg font-medium hover:text-primary transition-colors">
+                    sales@sara-flowers.ru
                   </a>
                 </div>
               </div>
