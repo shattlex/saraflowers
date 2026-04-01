@@ -1,0 +1,5 @@
+
+> @figma/my-make-file@0.0.1 dev:api
+> node --watch server/index.js
+
+API server started on http://127.0.0.1:8787

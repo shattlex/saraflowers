@@ -10,6 +10,7 @@ import { Contacts } from './pages/Contacts';
 import { BouquetBuilder } from './pages/BouquetBuilder';
 import { Account } from './pages/Account';
 import { Favorites } from './pages/Favorites';
+import { LegalDocumentPage } from './components/LegalDocumentPage';
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +56,22 @@ export const router = createBrowserRouter([
       {
         path: 'favorites',
         element: <Favorites />
+      },
+      {
+        path: 'oferta',
+        element: <LegalDocumentPage documentKey="oferta" />
+      },
+      {
+        path: 'privacy',
+        element: <LegalDocumentPage documentKey="privacy" />
+      },
+      {
+        path: 'consent',
+        element: <LegalDocumentPage documentKey="consent" />
+      },
+      {
+        path: 'terms',
+        element: <LegalDocumentPage documentKey="terms" />
       }
     ]
   }

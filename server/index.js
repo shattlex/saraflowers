@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,10 +33,10 @@ const pool = new Pool({
 });
 
 const ORDER_STATUSES = {
-  received: 'Заказ получен',
-  assembled: 'Собран',
-  out_for_delivery: 'Передан на доставку',
-  delivered: 'Вручен'
+  received: 'Р—Р°РєР°Р· РїРѕР»СѓС‡РµРЅ',
+  assembled: 'РЎРѕР±СЂР°РЅ',
+  out_for_delivery: 'РџРµСЂРµРґР°РЅ РЅР° РґРѕСЃС‚Р°РІРєСѓ',
+  delivered: 'Р’СЂСѓС‡РµРЅ'
 };
 
 app.use(cors());
@@ -77,7 +77,7 @@ function authOptional(req, _res, next) {
 function authRequired(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ ok: false, error: 'Требуется авторизация.' });
+    return res.status(401).json({ ok: false, error: 'РўСЂРµР±СѓРµС‚СЃСЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ.' });
   }
 
   try {
@@ -86,7 +86,7 @@ function authRequired(req, res, next) {
     req.user = { userId: decoded.userId };
     return next();
   } catch {
-    return res.status(401).json({ ok: false, error: 'Сессия истекла. Войдите снова.' });
+    return res.status(401).json({ ok: false, error: 'РЎРµСЃСЃРёСЏ РёСЃС‚РµРєР»Р°. Р’РѕР№РґРёС‚Рµ СЃРЅРѕРІР°.' });
   }
 }
 
@@ -99,6 +99,10 @@ function normalizePhone(raw) {
 function normalizeEmail(raw) {
   const value = String(raw || '').trim().toLowerCase();
   return value || null;
+}
+
+function isAcceptedConsent(value) {
+  return value === true;
 }
 
 function normalizeBitrixWebhookBase(raw) {
@@ -262,7 +266,7 @@ async function sendOrderTelegramNotification(order, message) {
 
 async function sendSmsCode(phone, code) {
   const apiId = process.env.SMSRU_API_ID?.trim();
-  const text = `Sara Flowers: код входа ${code}`;
+  const text = `Sara Flowers: РєРѕРґ РІС…РѕРґР° ${code}`;
 
   if (!apiId) {
     // Dev fallback: no provider configured
@@ -280,7 +284,7 @@ async function sendSmsCode(phone, code) {
   const response = await fetch(url, { method: 'POST' });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data?.status !== 'OK') {
-    throw new Error('Не удалось отправить SMS код. Проверьте SMSRU_API_ID.');
+    throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ SMS РєРѕРґ. РџСЂРѕРІРµСЂСЊС‚Рµ SMSRU_API_ID.');
   }
 
   return { devMode: false };
@@ -296,9 +300,9 @@ function escapeHtml(value) {
 }
 
 function formatOrderItems(orderItems) {
-  if (!Array.isArray(orderItems)) return 'Состав не указан';
+  if (!Array.isArray(orderItems)) return 'РЎРѕСЃС‚Р°РІ РЅРµ СѓРєР°Р·Р°РЅ';
   return orderItems
-    .map((item) => `• ${item.name} x${item.quantity} (${Number(item.price).toLocaleString('ru-RU')} ₽)`)
+    .map((item) => `вЂў ${item.name} x${item.quantity} (${Number(item.price).toLocaleString('ru-RU')} в‚Ѕ)`)
     .join('\n');
 }
 
@@ -306,21 +310,21 @@ function buildTelegramOrderMessage(order, options = {}) {
   const { paid = true } = options;
   const itemsText = formatOrderItems(order.items_json);
   const recipientLine = order.recipient_mode === 'other'
-    ? `${order.recipient_name || '—'}, ${order.recipient_phone || '—'}, ${order.recipient_email || '—'}`
-    : `${order.payer_name || '—'}, ${order.payer_phone || '—'}, ${order.payer_email || '—'}`;
+    ? `${order.recipient_name || 'вЂ”'}, ${order.recipient_phone || 'вЂ”'}, ${order.recipient_email || 'вЂ”'}`
+    : `${order.payer_name || 'вЂ”'}, ${order.payer_phone || 'вЂ”'}, ${order.payer_email || 'вЂ”'}`;
 
   return [
-    paid ? `<b>Оплачен заказ ${escapeHtml(order.id)}</b>` : `<b>Новый заказ (наличные) ${escapeHtml(order.id)}</b>`,
-    `Сумма: <b>${Number(order.total).toLocaleString('ru-RU')} ₽</b>`,
-    paid ? 'Статус оплаты: <b>Оплачен</b>' : 'Статус оплаты: <b>Не оплачен (наличные)</b>',
+    paid ? `<b>РћРїР»Р°С‡РµРЅ Р·Р°РєР°Р· ${escapeHtml(order.id)}</b>` : `<b>РќРѕРІС‹Р№ Р·Р°РєР°Р· (РЅР°Р»РёС‡РЅС‹Рµ) ${escapeHtml(order.id)}</b>`,
+    `РЎСѓРјРјР°: <b>${Number(order.total).toLocaleString('ru-RU')} в‚Ѕ</b>`,
+    paid ? 'РЎС‚Р°С‚СѓСЃ РѕРїР»Р°С‚С‹: <b>РћРїР»Р°С‡РµРЅ</b>' : 'РЎС‚Р°С‚СѓСЃ РѕРїР»Р°С‚С‹: <b>РќРµ РѕРїР»Р°С‡РµРЅ (РЅР°Р»РёС‡РЅС‹Рµ)</b>',
     '',
-    `<b>Букет(ы):</b>`,
+    `<b>Р‘СѓРєРµС‚(С‹):</b>`,
     escapeHtml(itemsText),
     '',
-    `<b>Адрес доставки:</b> ${escapeHtml(order.delivery_address || '—')}`,
-    `<b>Плательщик:</b> ${escapeHtml(order.payer_name || '—')} / ${escapeHtml(order.payer_phone || '—')} / ${escapeHtml(order.payer_email || '—')}`,
-    `<b>Получатель:</b> ${escapeHtml(recipientLine)}`,
-    order.comment ? `<b>Комментарий:</b> ${escapeHtml(order.comment)}` : ''
+    `<b>РђРґСЂРµСЃ РґРѕСЃС‚Р°РІРєРё:</b> ${escapeHtml(order.delivery_address || 'вЂ”')}`,
+    `<b>РџР»Р°С‚РµР»СЊС‰РёРє:</b> ${escapeHtml(order.payer_name || 'вЂ”')} / ${escapeHtml(order.payer_phone || 'вЂ”')} / ${escapeHtml(order.payer_email || 'вЂ”')}`,
+    `<b>РџРѕР»СѓС‡Р°С‚РµР»СЊ:</b> ${escapeHtml(recipientLine)}`,
+    order.comment ? `<b>РљРѕРјРјРµРЅС‚Р°СЂРёР№:</b> ${escapeHtml(order.comment)}` : ''
   ]
     .filter(Boolean)
     .join('\n');
@@ -344,28 +348,28 @@ async function createReceiptPdf(order) {
     if (unicodeFont) {
       doc.font(unicodeFont);
     }
-    doc.fontSize(20).text('Sara Flowers — Кассовый чек');
+    doc.fontSize(20).text('Sara Flowers вЂ” РљР°СЃСЃРѕРІС‹Р№ С‡РµРє');
     doc.moveDown();
 
-    doc.fontSize(12).text(`Заказ: ${order.id}`);
-    doc.text(`Дата: ${new Date().toLocaleString('ru-RU')}`);
-    doc.text(`Статус: ${ORDER_STATUSES[order.status] || order.status}`);
+    doc.fontSize(12).text(`Р—Р°РєР°Р·: ${order.id}`);
+    doc.text(`Р”Р°С‚Р°: ${new Date().toLocaleString('ru-RU')}`);
+    doc.text(`РЎС‚Р°С‚СѓСЃ: ${ORDER_STATUSES[order.status] || order.status}`);
     doc.moveDown();
 
-    doc.fontSize(14).text('Позиции:');
+    doc.fontSize(14).text('РџРѕР·РёС†РёРё:');
     doc.moveDown(0.5);
 
     for (const item of order.items_json || []) {
-      doc.fontSize(12).text(`${item.name} x${item.quantity} — ${Number(item.price).toLocaleString('ru-RU')} ₽`);
+      doc.fontSize(12).text(`${item.name} x${item.quantity} вЂ” ${Number(item.price).toLocaleString('ru-RU')} в‚Ѕ`);
     }
 
     doc.moveDown();
-    doc.fontSize(12).text(`Итого: ${Number(order.total).toLocaleString('ru-RU')} ₽`);
-    doc.text(`Адрес доставки: ${order.delivery_address || '—'}`);
-    doc.text(`Плательщик: ${order.payer_name || '—'}, ${order.payer_phone || '—'}, ${order.payer_email || '—'}`);
+    doc.fontSize(12).text(`РС‚РѕРіРѕ: ${Number(order.total).toLocaleString('ru-RU')} в‚Ѕ`);
+    doc.text(`РђРґСЂРµСЃ РґРѕСЃС‚Р°РІРєРё: ${order.delivery_address || 'вЂ”'}`);
+    doc.text(`РџР»Р°С‚РµР»СЊС‰РёРє: ${order.payer_name || 'вЂ”'}, ${order.payer_phone || 'вЂ”'}, ${order.payer_email || 'вЂ”'}`);
 
     if (order.recipient_mode === 'other') {
-      doc.text(`Получатель: ${order.recipient_name || '—'}, ${order.recipient_phone || '—'}, ${order.recipient_email || '—'}`);
+      doc.text(`РџРѕР»СѓС‡Р°С‚РµР»СЊ: ${order.recipient_name || 'вЂ”'}, ${order.recipient_phone || 'вЂ”'}, ${order.recipient_email || 'вЂ”'}`);
     }
 
     doc.end();
@@ -482,7 +486,7 @@ app.get('/api/auth/me', authRequired, async (req, res) => {
     );
 
     if (!result.rows[0]) {
-      return res.status(404).json({ ok: false, error: 'Пользователь не найден.' });
+      return res.status(404).json({ ok: false, error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ.' });
     }
 
     return res.json({ ok: true, user: result.rows[0] });
@@ -502,7 +506,7 @@ app.patch('/api/auth/profile', authRequired, async (req, res) => {
       : '';
 
     if (!name || (!normalizedEmail && !normalizedPhone)) {
-      return res.status(400).json({ ok: false, error: 'Укажите имя и телефон или email.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ РёРјСЏ Рё С‚РµР»РµС„РѕРЅ РёР»Рё email.' });
     }
 
     if (defaultDeliveryAddress.length > 500) {
@@ -516,7 +520,7 @@ app.patch('/api/auth/profile', authRequired, async (req, res) => {
       [req.user.userId, normalizedEmail, normalizedPhone || null]
     );
     if (existing.rows[0]) {
-      return res.status(409).json({ ok: false, error: 'Пользователь с таким email или телефоном уже существует.' });
+      return res.status(409).json({ ok: false, error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email РёР»Рё С‚РµР»РµС„РѕРЅРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚.' });
     }
 
     const updated = await pool.query(
@@ -543,12 +547,15 @@ app.patch('/api/auth/profile', authRequired, async (req, res) => {
 
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body ?? {};
+    const { name, email, phone, password, consentPersonalData, consentTerms } = req.body ?? {};
     const normalizedEmail = normalizeEmail(email);
     const normalizedPhone = normalizePhone(phone);
 
     if (!name || !password || (!normalizedEmail && !normalizedPhone)) {
-      return res.status(400).json({ ok: false, error: 'Укажите имя, пароль и телефон или email.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ РёРјСЏ, РїР°СЂРѕР»СЊ Рё С‚РµР»РµС„РѕРЅ РёР»Рё email.' });
+    }
+    if (!isAcceptedConsent(consentPersonalData) || !isAcceptedConsent(consentTerms)) {
+      return res.status(400).json({ ok: false, error: 'Для регистрации требуется согласие на обработку персональных данных и пользовательское соглашение.' });
     }
 
     const existing = await pool.query(
@@ -557,7 +564,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     if (existing.rows[0]) {
-      return res.status(409).json({ ok: false, error: 'Пользователь уже существует.' });
+      return res.status(409).json({ ok: false, error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚.' });
     }
 
     const passwordHash = await bcrypt.hash(String(password), 10);
@@ -581,7 +588,7 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { login, password } = req.body ?? {};
     if (!login || !password) {
-      return res.status(400).json({ ok: false, error: 'Укажите логин и пароль.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ Р»РѕРіРёРЅ Рё РїР°СЂРѕР»СЊ.' });
     }
 
     const normalizedLogin = String(login).trim().toLowerCase();
@@ -594,12 +601,12 @@ app.post('/api/auth/login', async (req, res) => {
 
     const user = found.rows[0];
     if (!user || !user.password_hash) {
-      return res.status(401).json({ ok: false, error: 'Неверный логин или пароль.' });
+      return res.status(401).json({ ok: false, error: 'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ.' });
     }
 
     const valid = await bcrypt.compare(String(password), user.password_hash);
     if (!valid) {
-      return res.status(401).json({ ok: false, error: 'Неверный логин или пароль.' });
+      return res.status(401).json({ ok: false, error: 'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ.' });
     }
 
     const token = signAuthToken(user);
@@ -624,8 +631,13 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/sms/request', async (req, res) => {
   try {
     const phone = normalizePhone(req.body?.phone);
+    const consentPersonalData = req.body?.consentPersonalData;
+    const consentTerms = req.body?.consentTerms;
     if (!phone) {
-      return res.status(400).json({ ok: false, error: 'Укажите телефон в формате +7...' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ С‚РµР»РµС„РѕРЅ РІ С„РѕСЂРјР°С‚Рµ +7...' });
+    }
+    if (!isAcceptedConsent(consentPersonalData) || !isAcceptedConsent(consentTerms)) {
+      return res.status(400).json({ ok: false, error: 'Для входа по SMS требуется согласие на обработку персональных данных и пользовательское соглашение.' });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -643,7 +655,7 @@ app.post('/api/auth/sms/request', async (req, res) => {
 
     return res.json({
       ok: true,
-      message: 'Код отправлен',
+      message: 'РљРѕРґ РѕС‚РїСЂР°РІР»РµРЅ',
       ...(result.devMode && process.env.NODE_ENV !== 'production' ? { devCode: code } : {})
     });
   } catch (error) {
@@ -658,7 +670,7 @@ app.post('/api/auth/sms/verify', async (req, res) => {
     const name = String(req.body?.name || '').trim();
 
     if (!phone || !code) {
-      return res.status(400).json({ ok: false, error: 'Укажите телефон и код.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ С‚РµР»РµС„РѕРЅ Рё РєРѕРґ.' });
     }
 
     const dbCode = await pool.query(
@@ -667,11 +679,11 @@ app.post('/api/auth/sms/verify', async (req, res) => {
     );
 
     if (!dbCode.rows[0] || dbCode.rows[0].code !== code) {
-      return res.status(401).json({ ok: false, error: 'Неверный код подтверждения.' });
+      return res.status(401).json({ ok: false, error: 'РќРµРІРµСЂРЅС‹Р№ РєРѕРґ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ.' });
     }
 
     if (new Date(dbCode.rows[0].expires_at).getTime() < Date.now()) {
-      return res.status(401).json({ ok: false, error: 'Код истек, запросите новый.' });
+      return res.status(401).json({ ok: false, error: 'РљРѕРґ РёСЃС‚РµРє, Р·Р°РїСЂРѕСЃРёС‚Рµ РЅРѕРІС‹Р№.' });
     }
 
     await pool.query(`DELETE FROM sms_codes WHERE phone = $1`, [phone]);
@@ -684,7 +696,7 @@ app.post('/api/auth/sms/verify', async (req, res) => {
         `INSERT INTO users (id, name, phone, auth_provider)
          VALUES ($1, $2, $3, 'sms')
          RETURNING *`,
-        [crypto.randomUUID(), name || 'Клиент', phone]
+        [crypto.randomUUID(), name || 'РљР»РёРµРЅС‚', phone]
       );
       user = inserted.rows[0];
     }
@@ -737,7 +749,7 @@ app.get('/api/auth/oauth/:provider/start', (req, res) => {
       return res.json({ ok: true, url: authUrl.toString() });
     }
 
-    return res.status(400).json({ ok: false, error: 'Неподдерживаемый OAuth провайдер.' });
+    return res.status(400).json({ ok: false, error: 'РќРµРїРѕРґРґРµСЂР¶РёРІР°РµРјС‹Р№ OAuth РїСЂРѕРІР°Р№РґРµСЂ.' });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Internal error' });
   }
@@ -850,7 +862,7 @@ app.patch('/api/orders/:orderId/status', async (req, res) => {
     const nextStatus = String(req.body?.status || '');
 
     if (!ORDER_STATUSES[nextStatus]) {
-      return res.status(400).json({ ok: false, error: 'Недопустимый статус.' });
+      return res.status(400).json({ ok: false, error: 'РќРµРґРѕРїСѓСЃС‚РёРјС‹Р№ СЃС‚Р°С‚СѓСЃ.' });
     }
 
     const updated = await pool.query(
@@ -859,7 +871,7 @@ app.patch('/api/orders/:orderId/status', async (req, res) => {
     );
 
     if (!updated.rows[0]) {
-      return res.status(404).json({ ok: false, error: 'Заказ не найден.' });
+      return res.status(404).json({ ok: false, error: 'Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ.' });
     }
 
     return res.json({ ok: true, order: updated.rows[0] });
@@ -870,9 +882,21 @@ app.patch('/api/orders/:orderId/status', async (req, res) => {
 
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, phone, email, message } = req.body ?? {};
+    const {
+      name,
+      phone,
+      email,
+      message,
+      consentPersonalData,
+      consentTerms
+    } = req.body ?? {};
+
     if (!name || (!phone && !email) || !message) {
       return res.status(400).json({ ok: false, error: 'Заполните имя, сообщение и телефон или email.' });
+    }
+
+    if (!isAcceptedConsent(consentPersonalData) || !isAcceptedConsent(consentTerms)) {
+      return res.status(400).json({ ok: false, error: 'Требуется согласие на обработку персональных данных и пользовательское соглашение.' });
     }
 
     const bitrixBase = normalizeBitrixWebhookBase(requireEnv('BITRIX24_WEBHOOK_URL'));
@@ -880,7 +904,7 @@ app.post('/api/contact', async (req, res) => {
 
     const leadPayload = {
       fields: {
-        TITLE: `Заявка с сайта Sara Flowers: ${String(name).trim()}`,
+        TITLE: `Р—Р°СЏРІРєР° СЃ СЃР°Р№С‚Р° Sara Flowers: ${String(name).trim()}`,
         NAME: String(name).trim(),
         PHONE: phone ? [{ VALUE: String(phone).trim(), VALUE_TYPE: 'WORK' }] : [],
         EMAIL: email ? [{ VALUE: String(email).trim(), VALUE_TYPE: 'WORK' }] : [],
@@ -898,7 +922,7 @@ app.post('/api/contact', async (req, res) => {
 
     const bitrixData = await bitrixResponse.json().catch(() => ({}));
     if (!bitrixResponse.ok || bitrixData.error) {
-      return res.status(502).json({ ok: false, error: 'Bitrix24 вернул ошибку', details: bitrixData });
+      return res.status(502).json({ ok: false, error: 'Bitrix24 РІРµСЂРЅСѓР» РѕС€РёР±РєСѓ', details: bitrixData });
     }
 
     return res.json({ ok: true, leadId: bitrixData.result });
@@ -909,33 +933,37 @@ app.post('/api/contact', async (req, res) => {
 
 app.post('/api/orders/create-cash', authOptional, async (req, res) => {
   try {
-    const { payer, recipient, recipientMode, items, total, deliveryAddress, orderComment } = req.body ?? {};
+    const { payer, recipient, recipientMode, items, total, deliveryAddress, orderComment, consents } = req.body ?? {};
 
     if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ ok: false, error: 'Корзина пуста.' });
+      return res.status(400).json({ ok: false, error: 'РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°.' });
     }
 
     const totalValue = Number(total);
     if (!Number.isFinite(totalValue) || totalValue <= 0) {
-      return res.status(400).json({ ok: false, error: 'Некорректная сумма заказа.' });
+      return res.status(400).json({ ok: false, error: 'РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ СЃСѓРјРјР° Р·Р°РєР°Р·Р°.' });
     }
 
     if (!deliveryAddress || !String(deliveryAddress).trim()) {
-      return res.status(400).json({ ok: false, error: 'Укажите адрес доставки.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ Р°РґСЂРµСЃ РґРѕСЃС‚Р°РІРєРё.' });
     }
 
     if (!payer?.name || !payer?.phone) {
-      return res.status(400).json({ ok: false, error: 'Укажите данные плательщика.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ РґР°РЅРЅС‹Рµ РїР»Р°С‚РµР»СЊС‰РёРєР°.' });
     }
 
     if (recipientMode === 'other' && (!recipient?.name || !recipient?.phone)) {
       return res.status(400).json({ ok: false, error: 'Укажите данные получателя.' });
     }
 
+    if (!isAcceptedConsent(consents?.offerAccepted) || !isAcceptedConsent(consents?.personalDataAccepted)) {
+      return res.status(400).json({ ok: false, error: 'Для оформления заказа необходимо подтвердить оферту и согласие на обработку персональных данных.' });
+    }
+
     const orderId = `SF-${Date.now()}`;
     const safeItems = items.map((item) => ({
       id: String(item?.id || crypto.randomUUID()),
-      name: String(item?.name || 'Букет'),
+      name: String(item?.name || 'Р‘СѓРєРµС‚'),
       quantity: Number(item?.quantity || 1),
       price: Number(item?.price || 0),
       image: typeof item?.image === 'string' ? item.image : ''
@@ -990,7 +1018,7 @@ app.post('/api/orders/create-cash', authOptional, async (req, res) => {
         await sendOrderTelegramNotification(createdOrder, message);
         if (receiptPath) {
           const receiptFilePath = path.join(RECEIPTS_DIR, path.basename(receiptPath));
-          await sendTelegramDocument(receiptFilePath, `<b>PDF-чек (наличные)</b> по заказу ${escapeHtml(createdOrder.id)}`);
+          await sendTelegramDocument(receiptFilePath, `<b>PDF-С‡РµРє (РЅР°Р»РёС‡РЅС‹Рµ)</b> РїРѕ Р·Р°РєР°Р·Сѓ ${escapeHtml(createdOrder.id)}`);
         }
       } catch (telegramError) {
         // eslint-disable-next-line no-console
@@ -1006,33 +1034,37 @@ app.post('/api/orders/create-cash', authOptional, async (req, res) => {
 
 app.post('/api/payments/create', authOptional, async (req, res) => {
   try {
-    const { payer, recipient, recipientMode, items, total, deliveryAddress, orderComment } = req.body ?? {};
+    const { payer, recipient, recipientMode, items, total, deliveryAddress, orderComment, consents } = req.body ?? {};
 
     if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ ok: false, error: 'Корзина пуста.' });
+      return res.status(400).json({ ok: false, error: 'РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°.' });
     }
 
     const totalValue = Number(total);
     if (!Number.isFinite(totalValue) || totalValue <= 0) {
-      return res.status(400).json({ ok: false, error: 'Некорректная сумма заказа.' });
+      return res.status(400).json({ ok: false, error: 'РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ СЃСѓРјРјР° Р·Р°РєР°Р·Р°.' });
     }
 
     if (!deliveryAddress || !String(deliveryAddress).trim()) {
-      return res.status(400).json({ ok: false, error: 'Укажите адрес доставки.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ Р°РґСЂРµСЃ РґРѕСЃС‚Р°РІРєРё.' });
     }
 
     if (!payer?.name || !payer?.phone) {
-      return res.status(400).json({ ok: false, error: 'Укажите данные плательщика.' });
+      return res.status(400).json({ ok: false, error: 'РЈРєР°Р¶РёС‚Рµ РґР°РЅРЅС‹Рµ РїР»Р°С‚РµР»СЊС‰РёРєР°.' });
     }
 
     if (recipientMode === 'other' && (!recipient?.name || !recipient?.phone)) {
       return res.status(400).json({ ok: false, error: 'Укажите данные получателя.' });
     }
 
+    if (!isAcceptedConsent(consents?.offerAccepted) || !isAcceptedConsent(consents?.personalDataAccepted)) {
+      return res.status(400).json({ ok: false, error: 'Для оформления заказа необходимо подтвердить оферту и согласие на обработку персональных данных.' });
+    }
+
     const orderId = `SF-${Date.now()}`;
     const safeItems = items.map((item) => ({
       id: String(item?.id || crypto.randomUUID()),
-      name: String(item?.name || 'Букет'),
+      name: String(item?.name || 'Р‘СѓРєРµС‚'),
       quantity: Number(item?.quantity || 1),
       price: Number(item?.price || 0),
       image: typeof item?.image === 'string' ? item.image : ''
@@ -1081,7 +1113,7 @@ app.post('/api/payments/create', authOptional, async (req, res) => {
         type: 'redirect',
         return_url: `${PUBLIC_BASE_URL}/checkout?payment=success&orderId=${encodeURIComponent(orderId)}`
       },
-      description: `Оплата заказа ${orderId} (Sara Flowers)`,
+      description: `РћРїР»Р°С‚Р° Р·Р°РєР°Р·Р° ${orderId} (Sara Flowers)`,
       metadata: {
         order_id: orderId
       }
@@ -1099,7 +1131,7 @@ app.post('/api/payments/create', authOptional, async (req, res) => {
 
     const paymentData = await yookassaResponse.json().catch(() => ({}));
     if (!yookassaResponse.ok) {
-      return res.status(502).json({ ok: false, error: 'Не удалось создать платеж в YooKassa', details: paymentData });
+      return res.status(502).json({ ok: false, error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїР»Р°С‚РµР¶ РІ YooKassa', details: paymentData });
     }
 
     await pool.query(
@@ -1150,7 +1182,7 @@ app.post('/api/payments/webhook', async (req, res) => {
     const message = buildTelegramOrderMessage(order, { paid: true });
     await sendOrderTelegramNotification(order, message);
     const receiptFilePath = path.join(RECEIPTS_DIR, path.basename(receiptPath));
-    await sendTelegramDocument(receiptFilePath, `<b>PDF-чек</b> по заказу ${escapeHtml(order.id)}`);
+    await sendTelegramDocument(receiptFilePath, `<b>PDF-С‡РµРє</b> РїРѕ Р·Р°РєР°Р·Сѓ ${escapeHtml(order.id)}`);
 
     return res.status(200).json({ ok: true });
   } catch (error) {
@@ -1178,3 +1210,6 @@ async function start() {
 }
 
 start();
+
+
+

@@ -1,6 +1,7 @@
 ﻿import { Mail } from 'lucide-react';
 import { Link } from 'react-router';
 import { useCmsContent } from '../cms/useCmsContent';
+import { LEGAL_DOCUMENTS } from '../legal/legalDocuments';
 
 export function Footer() {
   const cmsContent = useCmsContent();
@@ -17,7 +18,6 @@ export function Footer() {
             <p className="text-sm text-gray-600 mb-4">
               Свежие цветы, авторские композиции и бережная доставка по Москве и области.
             </p>
-            <div />
           </div>
 
           <div>
@@ -31,12 +31,15 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-medium mb-4">Покупателям</h4>
+            <h4 className="font-medium mb-4">Документы</h4>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><a href="#" className="hover:text-primary transition-colors">Оплата и возврат</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Доставка и самовывоз</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Публичная оферта</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Политика конфиденциальности</a></li>
+              {LEGAL_DOCUMENTS.map((doc) => (
+                <li key={doc.route}>
+                  <Link to={doc.route} className="hover:text-primary transition-colors">
+                    {doc.footerLabel}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -54,8 +57,8 @@ export function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
           <p>&copy; 2026 {siteName}. Все права защищены.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-primary transition-colors">Политика конфиденциальности</a>
-            <a href="#" className="hover:text-primary transition-colors">Пользовательское соглашение</a>
+            <Link to="/privacy" className="hover:text-primary transition-colors">Политика конфиденциальности</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">Пользовательское соглашение</Link>
           </div>
         </div>
       </div>

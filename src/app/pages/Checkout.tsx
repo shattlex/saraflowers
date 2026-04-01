@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { CreditCard, Wallet, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -11,6 +11,12 @@ export function Checkout() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recipientMode, setRecipientMode] = useState<'self' | 'other'>('self');
+  const [consents, setConsents] = useState({
+    offerAccepted: false,
+    personalDataAccepted: false,
+    marketingAccepted: false
+  });
+  const [consentError, setConsentError] = useState('');
 
   const [formData, setFormData] = useState({
     payerName: '',
@@ -55,9 +61,18 @@ export function Checkout() {
     return `SF${Math.floor(Math.random() * 10000)}`;
   }, [successOrderId]);
 
+  const hasRequiredConsents = consents.offerAccepted && consents.personalDataAccepted;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    if (!hasRequiredConsents) {
+      setConsentError('Для оформления заказа нужно принять оферту и согласие на обработку персональных данных.');
+      return;
+    }
+
+    setConsentError('');
 
     if (formData.paymentMethod === 'cash') {
       try {
@@ -83,7 +98,13 @@ export function Checkout() {
           })),
           total,
           deliveryAddress: formData.address,
-          orderComment: formData.comment
+          orderComment: formData.comment,
+          consents: {
+            offerAccepted: consents.offerAccepted,
+            personalDataAccepted: consents.personalDataAccepted,
+            marketingAccepted: consents.marketingAccepted,
+            acceptedAt: new Date().toISOString()
+          }
         });
 
         setOrderPlaced(true);
@@ -123,7 +144,13 @@ export function Checkout() {
         })),
         total,
         deliveryAddress: formData.address,
-        orderComment: formData.comment
+        orderComment: formData.comment,
+        consents: {
+          offerAccepted: consents.offerAccepted,
+          personalDataAccepted: consents.personalDataAccepted,
+          marketingAccepted: consents.marketingAccepted,
+          acceptedAt: new Date().toISOString()
+        }
       });
 
       if (!payment.confirmationUrl) {
@@ -334,10 +361,10 @@ export function Checkout() {
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium truncate">{item.name}</h4>
                         <p className="text-xs text-gray-500">
-                          {item.sizes.find((s) => s.value === item.selectedSize)?.label} × {item.quantity}
+                          {item.sizes.find((s) => s.value === item.selectedSize)?.label} ? {item.quantity}
                         </p>
                         <p className="text-sm font-medium mt-1">
-                          {(item.price * item.quantity).toLocaleString('ru-RU')} ₽
+                          {(item.price * item.quantity).toLocaleString('ru-RU')} ?
                         </p>
                       </div>
                     </div>
@@ -347,7 +374,7 @@ export function Checkout() {
                 <div className="border-t border-gray-200 pt-4 space-y-3 mb-5">
                   <div className="flex justify-between text-gray-600">
                     <span>Товары</span>
-                    <span>{total.toLocaleString('ru-RU')} ₽</span>
+                    <span>{total.toLocaleString('ru-RU')} ?</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Доставка</span>
@@ -355,11 +382,65 @@ export function Checkout() {
                   </div>
                   <div className="flex justify-between text-xl font-medium pt-3 border-t border-gray-200">
                     <span>К оплате</span>
-                    <span>{total.toLocaleString('ru-RU')} ₽</span>
+                    <span>{total.toLocaleString('ru-RU')} ?</span>
                   </div>
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="w-full px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 disabled:opacity-70 disabled:cursor-not-allowed transition-all">
+                <div className="space-y-3 mb-5 text-sm">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={consents.offerAccepted}
+                      onChange={(e) => {
+                        setConsents((prev) => ({ ...prev, offerAccepted: e.target.checked }));
+                        setConsentError('');
+                      }}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я ознакомлен(а) и согласен(на) с условиями{' '}
+                      <Link to="/oferta" className="text-primary hover:underline">Публичной оферты</Link>.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={consents.personalDataAccepted}
+                      onChange={(e) => {
+                        setConsents((prev) => ({ ...prev, personalDataAccepted: e.target.checked }));
+                        setConsentError('');
+                      }}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я даю <Link to="/consent" className="text-primary hover:underline">согласие на обработку персональных данных</Link> и подтверждаю ознакомление с{' '}
+                      <Link to="/privacy" className="text-primary hover:underline">Политикой конфиденциальности</Link>.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={consents.marketingAccepted}
+                      onChange={(e) => setConsents((prev) => ({ ...prev, marketingAccepted: e.target.checked }))}
+                      className="mt-1"
+                    />
+                    <span>Согласен(на) получать рекламные и информационные сообщения (необязательно).</span>
+                  </label>
+                </div>
+
+                {consentError && (
+                  <p className="text-sm text-red-600 mb-4" role="alert">
+                    {consentError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !hasRequiredConsents}
+                  className="w-full px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                >
                   {isSubmitting ? 'Переходим к оплате...' : 'Подтвердить заказ'}
                 </button>
               </div>
@@ -370,3 +451,4 @@ export function Checkout() {
     </div>
   );
 }
+

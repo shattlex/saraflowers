@@ -3,6 +3,8 @@ export interface ContactPayload {
   phone: string;
   email: string;
   message: string;
+  consentPersonalData: boolean;
+  consentTerms: boolean;
 }
 
 export interface CheckoutPerson {
@@ -17,6 +19,13 @@ export interface CheckoutItem {
   price: number;
   quantity: number;
   image?: string;
+}
+
+export interface CheckoutConsentPayload {
+  offerAccepted: boolean;
+  personalDataAccepted: boolean;
+  marketingAccepted?: boolean;
+  acceptedAt: string;
 }
 
 export interface UserProfile {
@@ -99,6 +108,7 @@ export async function createPayment(payload: {
   total: number;
   deliveryAddress: string;
   orderComment?: string;
+  consents: CheckoutConsentPayload;
 }): Promise<{ confirmationUrl: string | null; orderId: string }> {
   return request('/api/payments/create', {
     method: 'POST',
@@ -114,6 +124,7 @@ export async function createCashOrder(payload: {
   total: number;
   deliveryAddress: string;
   orderComment?: string;
+  consents: CheckoutConsentPayload;
 }): Promise<{ orderId: string }> {
   return request('/api/orders/create-cash', {
     method: 'POST',
@@ -126,6 +137,8 @@ export async function register(payload: {
   email: string;
   phone: string;
   password: string;
+  consentPersonalData: boolean;
+  consentTerms: boolean;
 }): Promise<{ token: string; user: UserProfile }> {
   return request('/api/auth/register', {
     method: 'POST',
@@ -143,10 +156,18 @@ export async function login(payload: {
   });
 }
 
-export async function requestSmsCode(phone: string): Promise<{ message: string; devCode?: string }> {
+export async function requestSmsCode(
+  phone: string,
+  consentPersonalData: boolean,
+  consentTerms: boolean
+): Promise<{ message: string; devCode?: string }> {
   return request('/api/auth/sms/request', {
     method: 'POST',
-    body: JSON.stringify({ phone })
+    body: JSON.stringify({
+      phone,
+      consentPersonalData,
+      consentTerms
+    })
   });
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
   clearAuthToken,
@@ -37,10 +37,13 @@ export function Account() {
   const [loginForm, setLoginForm] = useState({ login: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '' });
   const [smsForm, setSmsForm] = useState({ phone: '', code: '', name: '' });
+  const [registerConsents, setRegisterConsents] = useState({ personalData: false, terms: false });
+  const [smsConsents, setSmsConsents] = useState({ personalData: false, terms: false });
   const [devCode, setDevCode] = useState('');
   const [profileForm, setProfileForm] = useState({ name: '', phone: '', email: '' });
   const [defaultAddress, setDefaultAddress] = useState('');
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [profileConsentAccepted, setProfileConsentAccepted] = useState(false);
 
   const isAuthenticated = Boolean(profile);
 
@@ -102,9 +105,18 @@ export function Account() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+    if (!registerConsents.personalData || !registerConsents.terms) {
+      setError('Для регистрации нужно принять политику обработки персональных данных и пользовательское соглашение.');
+      return;
+    }
+
     try {
       setError('');
-      const response = await register(registerForm);
+      const response = await register({
+        ...registerForm,
+        consentPersonalData: registerConsents.personalData,
+        consentTerms: registerConsents.terms
+      });
       setAuthToken(response.token);
       await loadAccount();
     } catch (err) {
@@ -114,10 +126,15 @@ export function Account() {
 
   async function handleSmsRequest(e: React.FormEvent) {
     e.preventDefault();
+    if (!smsConsents.personalData || !smsConsents.terms) {
+      setError('Для входа по SMS нужно принять политику обработки персональных данных и пользовательское соглашение.');
+      return;
+    }
+
     try {
       setError('');
       setMessage('');
-      const response = await requestSmsCode(smsForm.phone);
+      const response = await requestSmsCode(smsForm.phone, smsConsents.personalData, smsConsents.terms);
       setDevCode(response.devCode || '');
       setMessage('Код отправлен.');
     } catch (err) {
@@ -153,6 +170,10 @@ export function Account() {
   async function handleAddressSave(e: React.FormEvent) {
     e.preventDefault();
     if (isSavingAddress) return;
+    if (!profileConsentAccepted) {
+      setError('Для сохранения данных подтвердите согласие на обработку персональных данных.');
+      return;
+    }
 
     try {
       setError('');
@@ -220,33 +241,150 @@ export function Account() {
 
             {mode === 'login' && (
               <form onSubmit={handleLogin} className="space-y-3">
-                <input required placeholder="Email или телефон" value={loginForm.login} onChange={(e) => setLoginForm({ ...loginForm, login: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                <input required type="password" placeholder="Пароль" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
+                <input
+                  required
+                  placeholder="Email или телефон"
+                  value={loginForm.login}
+                  onChange={(e) => setLoginForm({ ...loginForm, login: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+                <input
+                  required
+                  type="password"
+                  placeholder="Пароль"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
                 <button type="submit" className="w-full bg-primary text-white rounded-xl py-3">Войти</button>
               </form>
             )}
 
             {mode === 'register' && (
               <form onSubmit={handleRegister} className="space-y-3">
-                <input required placeholder="Имя" value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                <input placeholder="Email" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                <input placeholder="Телефон" value={registerForm.phone} onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                <input required type="password" placeholder="Пароль" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                <button type="submit" className="w-full bg-primary text-white rounded-xl py-3">Создать аккаунт</button>
+                <input
+                  required
+                  placeholder="Имя"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+                <input
+                  placeholder="Email"
+                  value={registerForm.email}
+                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+                <input
+                  placeholder="Телефон"
+                  value={registerForm.phone}
+                  onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+                <input
+                  required
+                  type="password"
+                  placeholder="Пароль"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+                <label className="flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={registerConsents.personalData}
+                    onChange={(e) => setRegisterConsents((prev) => ({ ...prev, personalData: e.target.checked }))}
+                    className="mt-1"
+                  />
+                  <span>
+                    Я принимаю <Link to="/privacy" className="text-primary hover:underline">Политику конфиденциальности</Link> и <Link to="/consent" className="text-primary hover:underline">согласие на обработку ПДн</Link>.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={registerConsents.terms}
+                    onChange={(e) => setRegisterConsents((prev) => ({ ...prev, terms: e.target.checked }))}
+                    className="mt-1"
+                  />
+                  <span>
+                    Я принимаю условия <Link to="/terms" className="text-primary hover:underline">Пользовательского соглашения</Link>.
+                  </span>
+                </label>
+                <button
+                  type="submit"
+                  disabled={!registerConsents.personalData || !registerConsents.terms}
+                  className="w-full bg-primary text-white rounded-xl py-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  Создать аккаунт
+                </button>
               </form>
             )}
 
             {mode === 'sms' && (
               <div className="space-y-3">
                 <form onSubmit={handleSmsRequest} className="space-y-3">
-                  <input required placeholder="Телефон +7..." value={smsForm.phone} onChange={(e) => setSmsForm({ ...smsForm, phone: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                  <button type="submit" className="w-full border border-primary text-primary rounded-xl py-3">Получить код</button>
+                  <input
+                    required
+                    placeholder="Телефон +7..."
+                    value={smsForm.phone}
+                    onChange={(e) => setSmsForm({ ...smsForm, phone: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                  />
+                  <label className="flex items-start gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={smsConsents.personalData}
+                      onChange={(e) => setSmsConsents((prev) => ({ ...prev, personalData: e.target.checked }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я принимаю <Link to="/privacy" className="text-primary hover:underline">Политику конфиденциальности</Link> и <Link to="/consent" className="text-primary hover:underline">согласие на обработку ПДн</Link>.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={smsConsents.terms}
+                      onChange={(e) => setSmsConsents((prev) => ({ ...prev, terms: e.target.checked }))}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я принимаю условия <Link to="/terms" className="text-primary hover:underline">Пользовательского соглашения</Link>.
+                    </span>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={!smsConsents.personalData || !smsConsents.terms}
+                    className="w-full border border-primary text-primary rounded-xl py-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    Получить код
+                  </button>
                 </form>
+
                 <form onSubmit={handleSmsVerify} className="space-y-3">
-                  <input placeholder="Имя (если новый клиент)" value={smsForm.name} onChange={(e) => setSmsForm({ ...smsForm, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                  <input required placeholder="Код из SMS" value={smsForm.code} onChange={(e) => setSmsForm({ ...smsForm, code: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-3" />
-                  <button type="submit" className="w-full bg-primary text-white rounded-xl py-3">Подтвердить код</button>
+                  <input
+                    placeholder="Имя (если новый клиент)"
+                    value={smsForm.name}
+                    onChange={(e) => setSmsForm({ ...smsForm, name: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                  />
+                  <input
+                    required
+                    placeholder="Код из SMS"
+                    value={smsForm.code}
+                    onChange={(e) => setSmsForm({ ...smsForm, code: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!smsConsents.personalData || !smsConsents.terms}
+                    className="w-full bg-primary text-white rounded-xl py-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    Подтвердить код
+                  </button>
                 </form>
+
                 {devCode && <p className="text-xs text-gray-500">DEV-код: {devCode}</p>}
               </div>
             )}
@@ -303,6 +441,7 @@ export function Account() {
           <p className="text-sm text-gray-600 mb-4">
             Эти данные будут подставляться автоматически при новом заказе.
           </p>
+
           <form onSubmit={handleAddressSave} className="space-y-3">
             <input
               type="text"
@@ -335,9 +474,20 @@ export function Account() {
               placeholder="Введите адрес доставки"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 resize-none"
             />
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={profileConsentAccepted}
+                onChange={(e) => setProfileConsentAccepted(e.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                Я подтверждаю согласие на обработку персональных данных в соответствии с <Link to="/privacy" className="text-primary hover:underline">Политикой конфиденциальности</Link>.
+              </span>
+            </label>
             <button
               type="submit"
-              disabled={isSavingAddress}
+              disabled={isSavingAddress || !profileConsentAccepted}
               className="bg-primary text-white rounded-xl px-5 py-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSavingAddress ? 'Сохраняем...' : 'Сохранить данные'}

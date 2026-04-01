@@ -1,6 +1,7 @@
 ﻿import { motion } from 'motion/react';
 import { Mail, Clock, Instagram, Send, type LucideIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { findCmsPage, type CmsBlock } from '../cms/content';
 import { useCmsContent } from '../cms/useCmsContent';
 import { submitContact } from '../api/client';
@@ -108,16 +109,31 @@ export function Contacts() {
 
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consents, setConsents] = useState({
+    personalData: false,
+    terms: false
+  });
+  const [consentError, setConsentError] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    if (!consents.personalData || !consents.terms) {
+      setConsentError('Для отправки формы нужно подтвердить согласие на обработку персональных данных и пользовательское соглашение.');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
-      await submitContact(formData);
+      setConsentError('');
+      await submitContact({
+        ...formData,
+        consentPersonalData: consents.personalData,
+        consentTerms: consents.terms
+      });
       alert('Спасибо! Заявка отправлена, менеджер скоро свяжется с вами.');
       setFormData({ name: '', phone: '', email: '', message: '' });
+      setConsents({ personalData: false, terms: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Не удалось отправить форму';
       alert(`Ошибка отправки: ${message}`);
@@ -200,7 +216,45 @@ export function Contacts() {
                   <textarea required rows={5} value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-primary transition-colors bg-white/50 resize-none" style={{ fontFamily: 'var(--font-sans)' }} />
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="w-full bg-primary text-white py-4 rounded-xl hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-sans)' }}>
+                <div className="space-y-2 text-sm">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={consents.personalData}
+                      onChange={(e) => {
+                        setConsents((prev) => ({ ...prev, personalData: e.target.checked }));
+                        setConsentError('');
+                      }}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я даю <Link to="/consent" className="text-primary hover:underline">согласие на обработку персональных данных</Link> и подтверждаю ознакомление с <Link to="/privacy" className="text-primary hover:underline">Политикой конфиденциальности</Link>.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={consents.terms}
+                      onChange={(e) => {
+                        setConsents((prev) => ({ ...prev, terms: e.target.checked }));
+                        setConsentError('');
+                      }}
+                      className="mt-1"
+                    />
+                    <span>
+                      Я принимаю условия <Link to="/terms" className="text-primary hover:underline">Пользовательского соглашения</Link>.
+                    </span>
+                  </label>
+                </div>
+
+                {consentError && (
+                  <p className="text-sm text-red-600" role="alert">
+                    {consentError}
+                  </p>
+                )}
+
+                <button type="submit" disabled={isSubmitting || !consents.personalData || !consents.terms} className="w-full bg-primary text-white py-4 rounded-xl hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2" style={{ fontFamily: 'var(--font-sans)' }}>
                   <Send className="w-5 h-5" />
                   {isSubmitting ? 'Отправляем...' : formButtonText}
                 </button>
@@ -212,6 +266,8 @@ export function Contacts() {
     </div>
   );
 }
+
+
 
 
 
